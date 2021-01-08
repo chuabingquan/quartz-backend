@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"quartz"
+	"quartz/docker"
 	"quartz/http"
 	"quartz/postgres"
 	"strconv"
@@ -24,12 +25,19 @@ func main() {
 	}
 	defer db.Close()
 
+	cs, err := docker.NewContainerService()
+	if err != nil {
+		panic(err)
+	}
+	defer cs.Close()
+
 	js := &postgres.JobService{DB: db}
 
 	server := http.Server{
-		Port:       config.Port,
-		Router:     gin.Default(),
-		JobService: js,
+		Port:             config.Port,
+		Router:           gin.Default(),
+		JobService:       js,
+		ContainerService: cs,
 	}
 	server.Start()
 }
