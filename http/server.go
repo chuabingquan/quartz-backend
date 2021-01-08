@@ -9,17 +9,19 @@ import (
 
 // Server ...
 type Server struct {
-	Port       int
-	Router     *gin.Engine
-	JobService quartz.JobService
+	Port             int
+	Router           *gin.Engine
+	JobService       quartz.JobService
+	ContainerService quartz.ContainerService
 }
 
 // Start ...
 func (s *Server) Start() {
 	handlers := []handler{
 		&jobsHandler{
-			Router:     s.Router,
-			JobService: s.JobService,
+			Router:           s.Router,
+			JobService:       s.JobService,
+			ContainerService: s.ContainerService,
 		},
 	}
 

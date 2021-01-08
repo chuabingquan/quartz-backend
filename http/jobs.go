@@ -3,7 +3,6 @@ package http
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,8 +18,9 @@ const (
 )
 
 type jobsHandler struct {
-	Router     *gin.Engine
-	JobService quartz.JobService
+	Router           *gin.Engine
+	JobService       quartz.JobService
+	ContainerService quartz.ContainerService
 }
 
 func (jh *jobsHandler) register() {
@@ -60,33 +60,32 @@ func (jh *jobsHandler) getJobByID(c *gin.Context) {
 }
 
 func (jh *jobsHandler) createJob(c *gin.Context) {
-	// job := quartz.Job{
-	// 	Name:     "test",
-	// 	Timezone: "Asia/Singapore",
-	// 	Schedule: []quartz.Cron{
-	// 		{Expression: "0 0 12 * * ?"},
-	// 		{Expression: "0 0 08 * * ?"},
-	// 	},
-	// 	ContainerID: uuid.New().String(),
-	// }
+	requestID := uuid.New().String()
+	sourceDir := "temp/" + requestID
 
-	// id, err := jh.JobService.CreateJob(job)
-	// log.Println(err)
-	// if err != nil {
-	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, standardResponse{"fuck"})
-	// 	return
-	// }
-	// c.JSON(http.StatusOK, standardResponse{id})
+	defer func() {
+		err := os.RemoveAll(sourceDir)
+		if err != nil {
+			panic(err)
+		}
+		if err := recover(); err != nil {
+			err := jh.ContainerService.Delete(requestID)
+			if err != nil {
+				panic(err)
+			}
+			err = jh.ContainerService.RemoveImage(requestID)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}()
 
 	file, err := c.FormFile("file")
 	if err != nil {
-		log.Println(err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, standardResponse{"Error processing deployment upload"})
 		return
 	}
 
-	requestID := uuid.New().String()
-	sourceDir := "temp/" + requestID
 	sourceFileDir := sourceDir + "/" + filepath.Base(file.Filename)
 	os.Mkdir(sourceDir, os.ModePerm)
 
@@ -183,30 +182,74 @@ func (jh *jobsHandler) createJob(c *gin.Context) {
 
 	err = archiver.Archive(fileNames, sourceDir+"/"+requestID+".tar.gz")
 	if err != nil {
-		log.Println(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError,
 			standardResponse{"Error processing deployment upload"})
 		return
 	}
 
-	c.JSON(http.StatusOK, standardResponse{"ok"})
+	err = jh.ContainerService.BuildImage(requestID, sourceDir+"/"+requestID+".tar.gz")
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			standardResponse{"Error processing deployment upload"})
+		return
+	}
+
+	err = jh.ContainerService.Create(requestID, requestID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			standardResponse{"Error processing deployment upload"})
+		return
+	}
+
+	err = jh.ContainerService.Start(requestID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			standardResponse{"Error processing deployment upload"})
+		return
+	}
+
+	_, err = jh.JobService.CreateJob(job)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
+			standardResponse{"Error processing deployment upload"})
+		return
+	}
+
+	c.JSON(http.StatusOK, standardResponse{"Job is successfully deployed!"})
 }
 
 func (jh *jobsHandler) deleteJob(c *gin.Context) {
 	jobID := c.Param("jobID")
 
-	err := jh.JobService.DeleteJob(jobID)
-	switch err {
-	case quartz.ErrEntityNotFound:
+	job, err := jh.JobService.Job(jobID)
+	if err == quartz.ErrEntityNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, resourceNotFoundResponse)
-		break
-	case nil:
-		c.JSON(http.StatusOK, standardResponse{"Job successfully deleted"})
-		break
-	default:
-		c.AbortWithStatusJSON(http.StatusInternalServerError, internalServerErrorResponse)
-		break
+		return
 	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, internalServerErrorResponse)
+		return
+	}
+
+	err = jh.ContainerService.Delete(job.ContainerID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, internalServerErrorResponse)
+		return
+	}
+
+	err = jh.ContainerService.RemoveImage(job.ContainerID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, internalServerErrorResponse)
+		return
+	}
+
+	err = jh.JobService.DeleteJob(jobID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, internalServerErrorResponse)
+		return
+	}
+
+	c.JSON(http.StatusOK, standardResponse{"Job is successfully deleted"})
 }
 
 func copy(source, dest string) error {
