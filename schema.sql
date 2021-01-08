@@ -1,0 +1,18 @@
+-- CREATE DATABASE quartz
+
+CREATE TABLE jobs (
+    id UUID PRIMARY KEY,
+    name VARCHAR(40) NOT NULL,
+    timezone TEXT NOT NULL,
+    container_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE schedule (
+    id UUID PRIMARY KEY,
+    expression TEXT NOT NULL,
+    job_id UUID NOT NULL REFERENCES jobs(id) ON UPDATE RESTRICT ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
