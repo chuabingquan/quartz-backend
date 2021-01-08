@@ -1,7 +1,6 @@
 package http
 
 import (
-	"log"
 	"net/http"
 	"quartz"
 
@@ -36,7 +35,6 @@ func (jh *jobsHandler) getJobByID(c *gin.Context) {
 	jobID := c.Param("jobID")
 
 	job, err := jh.JobService.Job(jobID)
-	log.Println(err)
 	switch err {
 	case quartz.ErrEntityNotFound:
 		c.AbortWithStatusJSON(http.StatusNotFound, resourceNotFoundResponse)
