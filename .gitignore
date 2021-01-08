@@ -17,3 +17,6 @@
 
 # Secrets
 .env
+
+# Temp Folder
+temp
