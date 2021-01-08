@@ -79,9 +79,11 @@ func (js *JobService) CreateJob(j quartz.Job) (string, error) {
 		return "", fmt.Errorf("Failed to begin transaction to insert job into database: %w", err)
 	}
 	defer func() {
-		err := tx.Rollback()
-		if err != nil {
-			panic(fmt.Errorf("Failed to rollback create job transaction: %w", err))
+		if err := recover(); err != nil {
+			err := tx.Rollback()
+			if err != nil {
+				panic(fmt.Errorf("Failed to rollback create job transaction: %w", err))
+			}
 		}
 	}()
 
