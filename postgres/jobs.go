@@ -61,12 +61,12 @@ func (js *JobService) Jobs() ([]quartz.Job, error) {
 		return nil, fmt.Errorf("An error occurred with rows when querying for jobs from database: %w", err)
 	}
 
-	for _, job := range jobs {
-		schedule, err := js.getJobSchedule(job.ID)
+	for i := 0; i < len(jobs); i++ {
+		schedule, err := js.getJobSchedule(jobs[i].ID)
 		if err != nil {
 			return nil, err
 		}
-		job.Schedule = schedule
+		jobs[i].Schedule = schedule
 	}
 
 	return jobs, nil
@@ -128,7 +128,7 @@ func (js *JobService) DeleteJob(jobID string) error {
 }
 
 func (js *JobService) getJobSchedule(jobID string) ([]quartz.Cron, error) {
-	query := `SELECT * FROM schedule WHERE job_id=$1`
+	query := `SELECT id, expression FROM schedule WHERE job_id=$1`
 
 	rows, err := js.DB.Queryx(query, jobID)
 	if err != nil {
@@ -140,7 +140,7 @@ func (js *JobService) getJobSchedule(jobID string) ([]quartz.Cron, error) {
 	for rows.Next() {
 		cron := quartz.Cron{}
 
-		err := rows.StructScan(&cron)
+		err := rows.Scan(&cron.ID, &cron.Expression)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to scan job schedule from row to struct: %w", err)
 		}
