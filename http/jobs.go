@@ -86,6 +86,9 @@ func (jh *jobsHandler) createJob(c *gin.Context) {
 		return
 	}
 
+	if _, err := os.Stat("temp"); os.IsNotExist(err) {
+		os.Mkdir("temp", os.ModePerm)
+	}
 	sourceFileDir := sourceDir + "/" + filepath.Base(file.Filename)
 	os.Mkdir(sourceDir, os.ModePerm)
 
