@@ -48,4 +48,10 @@ type JobService interface {
 
 // ContainerService ...
 type ContainerService interface {
+	BuildImage(imageTag, contextDir string) error
+	RemoveImage(imageTag string) error
+	Create(name, imageTag string) error
+	Start(name string) error
+	Stop(name string) error
+	Delete(name string) error
 }
