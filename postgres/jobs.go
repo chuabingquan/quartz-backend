@@ -109,7 +109,7 @@ func (js *JobService) CreateJob(j quartz.Job) (string, error) {
 
 // DeleteJob ...
 func (js *JobService) DeleteJob(jobID string) error {
-	query := `DELETE * FROM jobs WHERE id=$1`
+	query := `DELETE FROM jobs WHERE id=$1`
 
 	res, err := js.DB.Exec(query, jobID)
 	if err != nil {
