@@ -1,6 +1,9 @@
 package quartz
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 // Config ...
 type Config struct {
@@ -13,6 +16,12 @@ var (
 	ErrEntityNotFound = errors.New("Entity not found in database")
 )
 
+// Model ...
+type Model struct {
+	CreatedAt time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
+}
+
 // Cron ...
 type Cron struct {
 	ID         string `json:"id" db:"id"`
@@ -21,6 +30,7 @@ type Cron struct {
 
 // Job ...
 type Job struct {
+	Model
 	ID          string `json:"id" db:"id"`
 	Name        string `json:"name" db:"name"`
 	Timezone    string `json:"timezone" db:"timezone"`
