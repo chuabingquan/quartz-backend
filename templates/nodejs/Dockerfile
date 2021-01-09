@@ -6,6 +6,8 @@ COPY . .
 
 RUN yarn install --production
 
+RUN apk add --update tzdata
+
 RUN chmod +x /app/schedule.sh
 RUN chmod +x /app/start.sh
 RUN source /app/schedule.sh

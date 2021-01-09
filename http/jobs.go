@@ -197,7 +197,7 @@ func (jh *jobsHandler) createJob(c *gin.Context) {
 		return
 	}
 
-	err = jh.ContainerService.Create(requestID, requestID)
+	err = jh.ContainerService.Create(requestID, requestID, job.Timezone)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError,
 			standardResponse{"Error processing deployment upload"})

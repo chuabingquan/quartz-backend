@@ -72,10 +72,11 @@ func (cs *ContainerService) RemoveImage(imageTag string) error {
 }
 
 // Create ...
-func (cs *ContainerService) Create(name, imageTag string) error {
+func (cs *ContainerService) Create(name, imageTag, timezone string) error {
 	ctx := context.Background()
 	_, err := cs.docker.ContainerCreate(ctx, &container.Config{
 		Image: imageTag,
+		Env:   []string{"TZ=" + timezone},
 	}, &container.HostConfig{
 		AutoRemove: true,
 	}, nil, nil, imageTag)
